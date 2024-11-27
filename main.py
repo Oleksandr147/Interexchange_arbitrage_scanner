@@ -124,7 +124,7 @@ def calculate_acquired_coin(orderbook: list, amt_in: float) -> float:
 
 #find the arbitrage opportunities
 def calculate_arbitrage(symbol: str, exchange_1, exchange_2, ticker_1: dict,
-                        ticker_2: dict, amt_in) -> str:
+                        ticker_2: dict, amt_in) -> dict:
     """
 
     :param symbol: the trading pair symbol
@@ -144,10 +144,9 @@ def calculate_arbitrage(symbol: str, exchange_1, exchange_2, ticker_1: dict,
     acquired_coin = 0
     exchange_to_buy = ""
     exchange_to_sell = ""
-    coin_to_buy = ""
-    coin_to_sell = ""
     buy_price = 0
     sell_price = 0
+    surface_dict = {}
 
     if ask_1 < bid_2:
         exchange_to_buy = exchange_1
@@ -164,13 +163,54 @@ def calculate_arbitrage(symbol: str, exchange_1, exchange_2, ticker_1: dict,
         acquired_coin = calculate_orderbook_depth(symbol, exchange_to_buy, exchange_to_sell, starting_amount)
 
     #calculate the profit
-    profit = ((acquired_coin - starting_amount) / starting_amount)
+    profit = acquired_coin - starting_amount
+    trade_description = f"{symbol}:Buy {base} on {exchange_to_buy}" \
+                        f" at {buy_price} selling on {exchange_to_sell} at {sell_price}. the profit is {profit} " \
+                        f"{quote}. " \
+                        f"Please mind the network fee and exchange commission."
+    if 0 < profit < 5:
+        surface_dict = {
+            "buy from": exchange_to_buy.id,
+            "sell at": exchange_to_sell.id,
+            "starting_amount": starting_amount,
+            "acquired_coin": acquired_coin,
+            "profit": f"{profit} USDT",
+            "trade_description": trade_description
+        }
+        return surface_dict
+    return surface_dict
 
-    if profit > 0:
-        trade_description = f"{symbol}:Buy {base} on {exchange_to_buy}" \
-                            f"at {buy_price} selling on {exchange_to_sell} at {sell_price}. the profit is {profit} " \
-                            f"{quote}. " \
-                            f"Please mind the network fee and exchange commissions."
-        return trade_description
+
+#write the arbitrage bot that applies the above functions to the real exchange data
+def arbitrage_bot(exchange_1, exchange_2, amt_in: float):
+    """
+
+    :param exchange_1: centralized exchange 1
+    :param exchange_2: centralized exchange 2
+    :param amt_in: starting amount of USDT
+    :return: the string that describes the arbitrage opportunity
+    """
+    tickers_1 = exchange_1.fetch_tickers()
+    tickers_2 = exchange_2.fetch_tickers()
+
+    try:
+        common_symbols = find_common_symbols(tickers_1, tickers_2)
+
+        for symbol in common_symbols:
+            ticker_1 = tickers_1.get(symbol)
+            ticker_2 = tickers_2.get(symbol)
+
+            arb_opportunities = calculate_arbitrage(symbol, exchange_1, exchange_2, ticker_1,
+                                                    ticker_2, amt_in)
+            if len(arb_opportunities) > 0:
+                print(arb_opportunities)
+                time.sleep(10)
+
+    except Exception as e:
+        print(f"failed to calcukate arbitrage: {e}")
 
 
+
+if __name__ == "__main__":
+    while True:
+        arbitrage_bot(mexc, gateio, 300)
