@@ -51,8 +51,11 @@ def calculate_orderbook_depth(symbol: str, exchange_1, exchange_2, amt_in: float
     orderbook_2 = exchange_2.fetch_order_book(symbol)
     ref_orderbook_2 = reformat_orderbook(orderbook_2, "base_to_quote")
 
-    acquired_coin_1 = calculate_acquired_coin(orderbook_1, amt_in)
+    acquired_coin_1 = calculate_acquired_coin(ref_orderbook_1, amt_in)
 
+    acquired_coin_2 = calculate_acquired_coin(ref_orderbook_2, acquired_coin_1)
+
+    return acquired_coin_2
 
 
 #reformat orderbook data
@@ -80,6 +83,7 @@ def reformat_orderbook(orderbook: dict, trade_direction: str) -> list:
     return data_list
 
 
+#how the amount of the coin we can get from the orderbook
 def calculate_acquired_coin(orderbook: list, amt_in: float) -> float:
     """
 
@@ -116,4 +120,57 @@ def calculate_acquired_coin(orderbook: list, amt_in: float) -> float:
         calculated += 1
         if calculated == len(orderbook):
             return 0
-# print(calculate_orderbook_depth("STRUMP/USDT", gateio, mexc, 100))
+
+
+#find the arbitrage opportunities
+def calculate_arbitrage(symbol: str, exchange_1, exchange_2, ticker_1: dict,
+                        ticker_2: dict, amt_in) -> str:
+    """
+
+    :param symbol: the trading pair symbol
+    :param ticker_1: ticker data from exchange 1
+    :param ticker_2: ticker data from exchange 2
+    :return: the dict with the arbirtage opportunities description
+    """
+
+    starting_amount = amt_in
+    symbol_split = symbol.split("/")
+    base = symbol_split[0]
+    quote = symbol_split[1]
+    ask_1 = float(ticker_1["ask"])
+    bid_1 = float(ticker_1["bid"])
+    ask_2 = float(ticker_2["ask"])
+    bid_2 = float(ticker_2["bid"])
+    acquired_coin = 0
+    exchange_to_buy = ""
+    exchange_to_sell = ""
+    coin_to_buy = ""
+    coin_to_sell = ""
+    buy_price = 0
+    sell_price = 0
+
+    if ask_1 < bid_2:
+        exchange_to_buy = exchange_1
+        exchange_to_sell = exchange_2
+        buy_price = ask_1
+        sell_price = bid_2
+        acquired_coin = calculate_orderbook_depth(symbol, exchange_to_buy, exchange_to_sell, starting_amount)
+
+    if ask_2 < bid_1:
+        exchange_to_buy = exchange_2
+        exchange_to_sell = exchange_1
+        buy_price = ask_2
+        sell_price = bid_1
+        acquired_coin = calculate_orderbook_depth(symbol, exchange_to_buy, exchange_to_sell, starting_amount)
+
+    #calculate the profit
+    profit = ((acquired_coin - starting_amount) / starting_amount)
+
+    if profit > 0:
+        trade_description = f"{symbol}:Buy {base} on {exchange_to_buy}" \
+                            f"at {buy_price} selling on {exchange_to_sell} at {sell_price}. the profit is {profit} " \
+                            f"{quote}. " \
+                            f"Please mind the network fee and exchange commissions."
+        return trade_description
+
+
