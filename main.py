@@ -38,7 +38,6 @@ def find_common_symbols(tickers_1: dict, tickers_2: dict) -> set:
 #calculate orderbook depth to get the acquired coin data
 def calculate_orderbook_depth(symbol: str, exchange_1, exchange_2, amt_in: float) -> float:
     """
-
     :param symbol: the trading pair for the coins to be calculated
     :param exchange_1: the exchange from which we buy
     :param exchange_2: the exchange where we swap the acquired coin
@@ -48,7 +47,12 @@ def calculate_orderbook_depth(symbol: str, exchange_1, exchange_2, amt_in: float
 
     orderbook_1 = exchange_1.fetch_order_book(symbol)
     ref_orderbook_1 = reformat_orderbook(orderbook_1, "quote_to_base")
-    print(ref_orderbook_1)
+
+    orderbook_2 = exchange_2.fetch_order_book(symbol)
+    ref_orderbook_2 = reformat_orderbook(orderbook_2, "base_to_quote")
+
+    acquired_coin_1 = calculate_acquired_coin(orderbook_1, amt_in)
+
 
 
 #reformat orderbook data
@@ -75,4 +79,41 @@ def reformat_orderbook(orderbook: dict, trade_direction: str) -> list:
             data_list.append([adj_price, adj_quantity])
     return data_list
 
+
+def calculate_acquired_coin(orderbook: list, amt_in: float) -> float:
+    """
+
+    :param orderbook: the reformated orderbook data
+    :param amt_in: the starting amount
+    :return: the acquired coin we get through buying the quantity of the desired
+    coin from the orderbook
+    """
+    trading_balance = amt_in
+    acquired_coin = 0
+    quantity_bought = 0
+    amount_bought = 0
+    calculated = 0
+
+    for level in orderbook:
+        level_price = level[0]
+        level_quantity = level[1]
+
+        if trading_balance <= level_quantity:
+            quantity_bought = trading_balance
+            trading_balance = 0
+            amount_bought = quantity_bought * level_price
+
+        if trading_balance > level_quantity:
+            quantity_bought = level_quantity
+            trading_balance -= quantity_bought
+            amount_bought = quantity_bought * level_price
+
+        acquired_coin += amount_bought
+
+        if trading_balance == 0:
+            return acquired_coin
+
+        calculated += 1
+        if calculated == len(orderbook):
+            return 0
 # print(calculate_orderbook_depth("STRUMP/USDT", gateio, mexc, 100))
