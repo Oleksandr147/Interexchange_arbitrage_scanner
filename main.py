@@ -48,6 +48,7 @@ def calculate_orderbook_depth(symbol: str, exchange_1, exchange_2, amt_in: float
 
     orderbook_1 = exchange_1.fetch_order_book(symbol)
     ref_orderbook_1 = reformat_orderbook(orderbook_1, "quote_to_base")
+    print(ref_orderbook_1)
 
 
 #reformat orderbook data
