@@ -6,6 +6,7 @@ mexc = ccxt.mexc()
 gateio = ccxt.gateio()
 
 
+
 #normalize all symbols
 def normalize_symbols(symbol: str) -> str:
     """
@@ -22,6 +23,7 @@ def normalize_symbols(symbol: str) -> str:
         return symbol.replace("-", "/").replace("_", "/")
 
 
+
 #find common symbols
 def find_common_symbols(tickers_1: dict, tickers_2: dict) -> set:
     """
@@ -33,6 +35,7 @@ def find_common_symbols(tickers_1: dict, tickers_2: dict) -> set:
     symbols_2 = set(map(normalize_symbols, tickers_2.keys()))
     common_symbols = symbols_1 & symbols_2
     return common_symbols
+
 
 
 #calculate orderbook depth to get the acquired coin data
@@ -58,6 +61,7 @@ def calculate_orderbook_depth(symbol: str, exchange_1, exchange_2, amt_in: float
     return acquired_coin_2
 
 
+
 #reformat orderbook data
 def reformat_orderbook(orderbook: dict, trade_direction: str) -> list:
     """
@@ -81,6 +85,7 @@ def reformat_orderbook(orderbook: dict, trade_direction: str) -> list:
             adj_quantity = float(item[1])
             data_list.append([adj_price, adj_quantity])
     return data_list
+
 
 
 #how the amount of the coin we can get from the orderbook
@@ -120,6 +125,7 @@ def calculate_acquired_coin(orderbook: list, amt_in: float) -> float:
         calculated += 1
         if calculated == len(orderbook):
             return 0
+
 
 
 #find the arbitrage opportunities
@@ -179,6 +185,7 @@ def calculate_arbitrage(symbol: str, exchange_1, exchange_2, ticker_1: dict,
         }
         return surface_dict
     return surface_dict
+
 
 
 #write the arbitrage bot that applies the above functions to the real exchange data
